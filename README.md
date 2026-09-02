@@ -1,4 +1,4 @@
-# @bambiste/import-map
+# mappel
 
 This package builds an import map from what a workspace actually imports. It reads package manifests and import statements, and writes JSON. It does not bundle or build anything.
 
@@ -9,10 +9,10 @@ It resolves each specifier through the package's own exports map — nested cond
 A repo declares named layers in importmap.config.mjs, and a layer can exclude what another already resolves, so a page loads two maps and neither repeats the other. Layers can also drop a whole scope by prefix. A css specifier maps to a `.js` sibling that adds the file as a link, because a browser cannot import a stylesheet as a module. Pass `--css link` to get the specifier mapped away and the link tags printed instead.
 
 ```sh
-import-map --layer min                          # to stdout, urls pinned to installed versions
-import-map --layer components --split dist/     # one file per package in the layer
-import-map --layer foundation --target local    # workspace paths, for a dev server
-import-map --layer min --html                   # ready to paste into a page
+mappel --layer min                          # to stdout, urls pinned to installed versions
+mappel --layer components --split dist/     # one file per package in the layer
+mappel --layer foundation --target local    # workspace paths, for a dev server
+mappel --layer min --html                   # ready to paste into a page
 ```
 
 ```js
