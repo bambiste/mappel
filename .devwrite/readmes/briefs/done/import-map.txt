@@ -1,0 +1,25 @@
+package:  @bambiste/import-map
+audience: someone publishing packages that a page should be able to load from a
+          CDN with no bundler
+one-line: builds the import map from what a workspace actually imports
+measured: one component in a real library needed 24 entries; the framework's
+          minimum is 15
+verified: the maps it produces were loaded in a browser, and match what two
+          repositories generated before the tool existed
+do-not-claim: that it bundles or builds anything. It reads package manifests and
+          import statements, and writes json.
+structure: four short sections, no headings beyond the ones named.
+  1. why: a browser resolves a bare specifier only through an import map and never
+     reads package.json, so every transitive subpath has to be listed — including
+     the ones a package reaches through its own dependencies. Written by hand, that
+     list is wrong within a release.
+  2. "What it does": resolves each specifier through the package's own exports
+     map — nested conditions, wildcards, and the form with no "." key — then walks
+     the files it finds for more specifiers. It reports what it could not resolve
+     rather than emitting a map that fails in the browser.
+  3. "Layers": a repo declares named layers in importmap.config.mjs, and a layer
+     can exclude what another already resolves, so a page loads two maps and
+     neither repeats the other. Layers can also drop a whole scope by prefix.
+  4. "Stylesheets": a css specifier maps to a `.js` sibling that adds the file as
+     a link, because a browser cannot import a stylesheet as a module. Pass
+     --css link to get the specifier mapped away and the link tags printed instead.

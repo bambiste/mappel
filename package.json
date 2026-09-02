@@ -1,0 +1,31 @@
+{
+  "name": "@bambiste/import-map",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "generate the import map a page needs from a workspace: resolves every transitive subpath through each package exports map, in layers that compose",
+  "type": "module",
+  "bin": {
+    "import-map": "./bin/import-map.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./resolve": "./src/resolve.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bambiste/import-map.git"
+  }
+}

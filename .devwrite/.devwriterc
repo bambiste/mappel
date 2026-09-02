@@ -1,0 +1,11 @@
+# Per-project devwrite settings. Sourced by devwrite, so plain shell.
+
+# MODEL=qwen2.5-coder:7b        smaller/faster, or whatever the endpoint has
+
+# Where the model runs. Default is this machine. Point it at a LAN address to use a
+# box with more memory — the serving side needs OLLAMA_HOST=0.0.0.0:11434 ollama serve,
+# because ollama binds loopback only.
+# ENDPOINT=192.168.1.18:11434
+
+# TIMEOUT=600                   a cold load over a LAN can be slow
+# API_KEY=...                   only if the endpoint sits behind an authenticating proxy
