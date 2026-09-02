@@ -1,10 +1,11 @@
 {
-  "name": "@bambiste/import-map",
+  "name": "mappel",
   "version": "0.1.0",
   "license": "MIT",
   "description": "generate the import map a page needs from a workspace: resolves every transitive subpath through each package exports map, in layers that compose",
   "type": "module",
   "bin": {
+    "mappel": "./bin/import-map.mjs",
     "import-map": "./bin/import-map.mjs"
   },
   "exports": {
@@ -26,6 +27,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bambiste/import-map.git"
+    "url": "https://github.com/bambiste/mappel.git"
   }
 }
