@@ -1,42 +1,58 @@
 name: Release
 
-# Publishing happens here, never from a laptop: the tag is the record of what was
-# released, and the token stays in the repo rather than on someone's machine.
-#
-#   npm version patch && git push --follow-tags
+# Everything about a release happens here. A change carries a changeset; merging it
+# opens a "Version Packages" PR; merging that publishes. Nothing is versioned or
+# published from anyone's machine.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
 permissions:
-  contents: read
-  id-token: write # provenance, which npm records against this workflow run
+  contents: write # version commit and tag
+  pull-requests: write # open the version PR
+  id-token: write # provenance, recorded against this workflow run
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
+      # `secrets.X || secrets.Y` falls back only when X is EMPTY, so an expired PAT
+      # is still chosen and checkout dies on `could not read Username` before
+      # anything about the release has run. Ask the API which token works.
+      - name: Check the release token
+        id: token
+        run: |
+          if [ -n "${{ secrets.PACKAGES_TOKEN }}" ] && curl -sf -o /dev/null \
+              -H "Authorization: Bearer ${{ secrets.PACKAGES_TOKEN }}" \
+              https://api.github.com/user; then
+            echo "pat=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pat=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=PACKAGES_TOKEN unusable::Falling back to GITHUB_TOKEN."
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.token.outputs.pat == 'true' && secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - run: npm test
+      - run: npm ci
 
-      # The tag and the manifest must agree, or the tag stops being the record.
-      - name: Tag matches the version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          tagged="${GITHUB_REF_NAME#v}"
-          packaged=$(node -p "require('./package.json').version")
-          if [ "$tagged" != "$packaged" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match package.json $packaged"
-            exit 1
-          fi
-
-      - run: npm publish --provenance --access public
+      - uses: changesets/action@v1
+        with:
+          version: npm run version
+          publish: npm run release
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
         env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.pat == 'true' && secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

@@ -1,6 +1,6 @@
 {
   "name": "mappel",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "license": "MIT",
   "description": "generate the import map a page needs from a workspace: resolves every transitive subpath through each package exports map, in layers that compose",
   "type": "module",
@@ -19,7 +19,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "version": "changeset version",
+    "release": "npm test && changeset publish"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -28,5 +30,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/bambiste/mappel.git"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^3.0.1"
   }
 }

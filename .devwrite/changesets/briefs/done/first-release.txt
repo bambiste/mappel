@@ -1,0 +1,9 @@
+packages: mappel
+bump:     minor
+what:     first release of mappel, a command-line tool. It is not a compiler and
+          does not build anything: it reads package manifests and import
+          statements, and writes the import map json a page needs.
+why:      a browser resolves a bare specifier only through an import map and never
+          reads package.json, so every transitive subpath has to be listed by hand.
+          layers are declared per repository, and one layer can leave out what
+          another already resolves, so two maps compose without repeating.
