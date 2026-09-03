@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, normalize, relative } from 'node:path';
 import { manifest, packageDir, resolveExport, splitSpecifier, subpathsOf } from './resolve.mjs';
 
@@ -25,7 +25,18 @@ function scanImports(file) {
  * mapped to a url a browser can fetch.
  */
 export function collect(specifiers, options) {
-  const { root, target = 'cdn', cdn = 'https://unpkg.com', css = 'loader', workspaces } = options;
+  const {
+    root,
+    target = 'cdn',
+    cdn = 'https://unpkg.com',
+    css = 'loader',
+    workspaces,
+    // The version in the url. A manifest version pins the map to exactly what was
+    // installed when it was written, which is what a published map wants. A dist
+    // tag follows a channel instead, so a page tracks it without being rebuilt —
+    // at the cost of the page changing when the channel does.
+    distTag = null,
+  } = options;
   const imports = {};
   const stylesheets = new Set();
   const unresolved = new Set();
@@ -33,9 +44,9 @@ export function collect(specifiers, options) {
 
   const urlFor = (name, dir, file) => {
     const clean = file.replace(/^\.\//, '');
-    return target === 'local'
-      ? '/' + relative(root, join(dir, clean)).split('\\').join('/')
-      : `${cdn}/${name}@${manifest(dir).version}/${clean}`;
+    if (target === 'local') return '/' + relative(root, join(dir, clean)).split('\\').join('/');
+    const version = distTag === 'none' ? '' : '@' + (distTag || manifest(dir).version);
+    return `${cdn}/${name}${version}/${clean}`;
   };
 
   const add = (spec) => {
@@ -118,3 +129,78 @@ function helpers(options) {
 }
 
 export { subpathsOf, packageDir, resolveExport };
+
+/**
+ * Write every layer a config declares, plus any per-item split it asks for.
+ * This is what `mappel` does with no arguments: the config says where the
+ * workspace is and where the files go, so a repo needs no script of its own.
+ */
+export function writeAll(config, options) {
+  const out = options.out;
+  mkdirSync(out, { recursive: true });
+
+  const written = [];
+  for (const name of Object.keys(config.layers)) {
+    const { imports } = buildLayer(name, config, options);
+    const file = join(out, `${name}.json`);
+    writeFileSync(file, JSON.stringify({ imports }, null, 2) + '\n');
+    written.push({ file, entries: Object.keys(imports).length });
+  }
+
+  // A combined file, for engines that take only one import map. Several maps in
+  // one page need Chromium 133 or newer. A layer of the same name means the config
+  // already has one, and writing both would silently overwrite the layer's file.
+  const combined = config.full === true || config.full === undefined ? 'full' : config.full;
+  if (config.full !== false && config.layers[combined]) {
+    throw new Error(
+      `[mappel] a layer is named "${combined}" and the combined file would overwrite it. ` +
+        `Set full: false, or full: "<other-name>".`,
+    );
+  }
+  if (config.full !== false) {
+    const imports = {};
+    for (const name of Object.keys(config.layers)) {
+      Object.assign(imports, buildLayer(name, config, options).imports);
+    }
+    const file = join(out, `${combined}.json`);
+    writeFileSync(
+      file,
+      JSON.stringify(
+        { imports: Object.fromEntries(Object.entries(imports).sort(([a], [b]) => a.localeCompare(b))) },
+        null,
+        2,
+      ) + '\n',
+    );
+    written.push({ file, entries: Object.keys(imports).length });
+  }
+
+  for (const [layerName, target] of Object.entries(config.split ?? {})) {
+    const dir = join(out, target);
+    mkdirSync(dir, { recursive: true });
+    const layer = config.layers[layerName];
+    const names =
+      typeof layer.packages === 'function'
+        ? layer.packages({
+            subpathsOf: (n) => subpathsOf(options.root, n, options.workspaces),
+            root: options.root,
+          })
+        : layer.packages;
+    let count = 0;
+    for (const name of names) {
+      const one = buildLayer(
+        layerName,
+        { ...config, layers: { ...config.layers, [layerName]: { ...layer, packages: [name] } } },
+        options,
+      );
+      if (Object.keys(one.imports).length === 0) continue;
+      writeFileSync(
+        join(dir, name.split('/').pop() + '.json'),
+        JSON.stringify({ imports: one.imports }, null, 2) + '\n',
+      );
+      count += 1;
+    }
+    written.push({ file: `${dir}/*.json`, entries: count, split: true });
+  }
+
+  return written;
+}
