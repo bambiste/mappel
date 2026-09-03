@@ -1,0 +1,13 @@
+packages: mappel
+bump:     minor
+what:     every map is now written twice — name.json to read, and name.js which
+          installs that map into the page that loads it as an ordinary script
+          tag. `--no-js`, or `js: false` in the config, writes only the json.
+why:      a browser never loads an import map from a src attribute, so until now a
+          page had to carry the whole map inline. That ruled out any page whose
+          markup is generated, and pinned the page to whatever versions were
+          current when someone pasted it.
+          an inline map is registered when its element is inserted, so files
+          cannot merge and each installs its own map. Several maps in one page
+          need Chromium 133 or newer, and the script says so if the browser turns
+          one down.

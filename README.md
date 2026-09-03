@@ -8,8 +8,11 @@ It resolves each specifier through the package's own exports map — nested cond
 
 A repo declares named layers in importmap.config.mjs, and a layer can exclude what another already resolves, so a page loads two maps and neither repeats the other. Layers can also drop a whole scope by prefix. A css specifier maps to a `.js` sibling that adds the file as a link, because a browser cannot import a stylesheet as a module. Pass `--css link` to get the specifier mapped away and the link tags printed instead.
 
+Every map is written twice: `name.json` and `name.js`, which installs the map when a page loads it with a script tag. The script must come before the first module script in the page, or it is ignored. Inline maps are registered when their element is inserted, and multiple maps in one page require Chromium 133 or newer.
+
 ```sh
 mappel                                  # every layer, to the out in the config
+mappel --no-js                          # the json only, without the script siblings
 mappel --layer min                      # one layer, to stdout
 mappel --layer min --html               # ready to paste into a page
 mappel --layer min --dist-tag alpha     # follow a channel instead of pinning
@@ -26,6 +29,7 @@ export default {
   out: 'packages/cdn/dist',        // relative to this file
   workspaces: ['packages'],
   split: { components: 'components' },   // a file per package in that layer
+  js: false,                             // skip the script siblings
   layers: {
     base: { packages: ['@scope/core', '@scope/dom'] },
     extra: { packages: ['@scope/extra'], excludes: ['base'] },
