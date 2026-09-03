@@ -1,0 +1,18 @@
+package:  mappel
+audience: someone who has run mappel and now has to get the map into a page
+one-line: one paragraph to add to an existing README, not a whole README
+verified: a page loading one script installed the map and imported from unpkg
+          through it; a page loading two installed both, in Chrome 140
+do-not-claim: that the maps merge, or that several of them work everywhere.
+structure: one paragraph, no heading, no code block, at most 90 words. It goes
+  after the paragraph about layers and before the sh block.
+  facts, in this order:
+  1. every map is written twice: name.json, and name.js which installs that map
+     when a page loads it with an ordinary script tag. `--no-js`, or `js: false`
+     in the config, writes only the json.
+  2. the script has to come before the first module script in the page, because a
+     map added after one has begun loading is ignored. The script says so if it
+     finds it is too late.
+  3. an inline map is registered when its element is inserted, so a second file
+     cannot merge into the first one's and each installs its own. Several maps in
+     one page need Chromium 133 or newer, which is what the combined file is for.

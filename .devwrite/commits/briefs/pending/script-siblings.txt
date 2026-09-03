@@ -1,0 +1,24 @@
+files:  src/index.mjs, bin/mappel.mjs, test/layers.test.mjs, test/cli.test.mjs,
+        .github/workflows/release.yml
+what:   Every map is now written twice — name.json to read, and name.js which
+        installs that map when a page loads it as a plain script. --no-js, or
+        js: false in the config, writes only the json. Also stopped gating the
+        tag push on the changesets action's published output.
+why:    A browser never loads an import map from a src attribute, so a page that
+        wants one has to carry the whole map inline. That rules out any page whose
+        markup is generated — a docs site, a playground — and it pins the page to
+        the versions that were current when someone pasted it. One script tag
+        instead, and the map arrives with the release that generated it.
+        An inline map is registered the moment its element is inserted, so a
+        second file cannot merge into the first one's element and each installs
+        its own. Two maps in one page needs Chromium 133 or newer; the script
+        listens for the element's error event and points at the combined map when
+        the browser turns one down. It also warns when a module script already
+        appears above it, which is the case where the map arrives too late to
+        resolve anything.
+        The tag push was gated on an output the action leaves empty: the publish
+        prints through the CLI's prompt UI, which the action does not parse, so a
+        run that published fine looked like one that had not, and 0.2.0 reached
+        npm with no tag behind it.
+verify: suite green, and both a single map and a pair of them checked in a browser
+        against the published packages

@@ -61,6 +61,11 @@ jobs:
 
       # `changeset publish` makes the tags on the runner and the job then ends, so
       # nothing reaches the remote and the Releases page stays empty. Push them.
+      #
+      # Not gated on the action's `published` output: the publish prints through the
+      # CLI's prompt UI, which the action does not parse, so the output stays empty
+      # on a run that published fine. Pushing tags is idempotent and a no-op when
+      # there are none.
       - name: Push the tags publish created
-        if: steps.changesets.outputs.published == 'true'
+        if: ${{ !cancelled() }}
         run: git push origin --tags

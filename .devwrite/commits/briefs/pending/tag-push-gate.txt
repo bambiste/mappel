@@ -1,0 +1,9 @@
+files:  .github/workflows/release.yml
+what:   The step that pushes tags no longer checks the changesets action's
+        published output, and runs whenever the job was not cancelled.
+why:    The publish prints through the release CLI's prompt UI, which the action
+        does not parse, so its output stays empty on a run that published
+        perfectly well. 0.2.0 reached npm with nothing tagged behind it and an
+        empty releases page. Pushing tags is idempotent and does nothing when
+        there are none, so there is no reason to guard it.
+verify: run inspected, the step had been skipped
