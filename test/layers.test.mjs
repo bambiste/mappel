@@ -47,3 +47,29 @@ test('entries come out sorted, so the same input gives the same file', () => {
   const keys = Object.keys(buildLayer('all', config, { root }).imports);
   assert.deepEqual(keys, [...keys].sort());
 });
+
+test('a dist tag replaces the pinned version, and none drops it', () => {
+  const root = workspace();
+  const config = { layers: { base: { packages: ['@w/base'] } } };
+  const pinned = buildLayer('base', config, { root });
+  const tagged = buildLayer('base', config, { root, distTag: 'alpha' });
+  const floating = buildLayer('base', config, { root, distTag: 'none' });
+
+  assert.match(pinned.imports['@w/base'], /@w\/base@1\.0\.0\//);
+  assert.match(tagged.imports['@w/base'], /@w\/base@alpha\//);
+  assert.match(floating.imports['@w/base'], /unpkg\.com\/@w\/base\/dist/);
+});
+
+test('writeAll writes a file per layer plus the combined one', async () => {
+  const { mkdtempSync, readdirSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { writeAll } = await import('../src/index.mjs');
+
+  const root = workspace();
+  const out = join(mkdtempSync(join(tmpdir(), 'im-out-')), 'maps');
+  const config = {
+    layers: { base: { packages: ['@w/base'] }, leaf: { packages: ['@w/leaf'], excludes: ['base'] } },
+  };
+  writeAll(config, { root, out });
+  assert.deepEqual(readdirSync(out).sort(), ['base.json', 'full.json', 'leaf.json']);
+});

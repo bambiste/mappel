@@ -1,0 +1,10 @@
+packages: mappel
+bump:     minor
+what:     running `mappel` with no arguments writes every layer a config declares,
+          so a package's build script is one word and needs no script of its own.
+          `--dist-tag` puts a channel in the url instead of the installed version.
+why:      each repository had written the same forty lines to call the library and
+          write the files.
+          a url built from the installed version pins the map to what shipped with
+          it, which is what a published map wants. A page that should follow a
+          channel wants the tag instead, and could not ask for it.
