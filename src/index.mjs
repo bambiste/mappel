@@ -131,6 +131,32 @@ function helpers(options) {
 export { subpathsOf, packageDir, resolveExport };
 
 /**
+ * The script sibling of a map. A page that cannot write JSON into its own
+ * markup — a docs site, a playground, anything served as a template — gets the
+ * map by loading one classic script instead.
+ *
+ * An inline map is registered when the element is inserted, so a second file
+ * cannot merge into the first one's element and each installs its own. Several
+ * maps in one page need Chromium 133 or newer; the combined file is the way to
+ * stay on one.
+ */
+function installer(imports) {
+  const map = JSON.stringify(JSON.stringify({ imports }));
+  return `(function(){var d=document,w=function(m){if(typeof console!=='undefined')console.warn('[mappel] '+m)};
+if(d.querySelector('script[type="module"]'))w('the import map is being added after a module script and will not be used — load this file first');
+var s=d.createElement('script');s.type='importmap';s.setAttribute('data-mappel','');s.textContent=${map};
+s.addEventListener('error',function(){w('the browser rejected this import map — a page with several maps needs Chromium 133+, so use the combined map instead')});
+(d.head||d.documentElement).appendChild(s);
+(self.__mappel||(self.__mappel=[])).push(JSON.parse(s.textContent))})();
+`;
+}
+
+export function writeMap(file, imports, config = {}) {
+  writeFileSync(file, JSON.stringify({ imports }, null, 2) + '\n');
+  if (config.js !== false) writeFileSync(file.replace(/\.json$/, '.js'), installer(imports));
+}
+
+/**
  * Write every layer a config declares, plus any per-item split it asks for.
  * This is what `mappel` does with no arguments: the config says where the
  * workspace is and where the files go, so a repo needs no script of its own.
@@ -143,7 +169,7 @@ export function writeAll(config, options) {
   for (const name of Object.keys(config.layers)) {
     const { imports } = buildLayer(name, config, options);
     const file = join(out, `${name}.json`);
-    writeFileSync(file, JSON.stringify({ imports }, null, 2) + '\n');
+    writeMap(file, imports, config);
     written.push({ file, entries: Object.keys(imports).length });
   }
 
@@ -163,14 +189,7 @@ export function writeAll(config, options) {
       Object.assign(imports, buildLayer(name, config, options).imports);
     }
     const file = join(out, `${combined}.json`);
-    writeFileSync(
-      file,
-      JSON.stringify(
-        { imports: Object.fromEntries(Object.entries(imports).sort(([a], [b]) => a.localeCompare(b))) },
-        null,
-        2,
-      ) + '\n',
-    );
+    writeMap(file, sorted(imports), config);
     written.push({ file, entries: Object.keys(imports).length });
   }
 
@@ -193,10 +212,7 @@ export function writeAll(config, options) {
         options,
       );
       if (Object.keys(one.imports).length === 0) continue;
-      writeFileSync(
-        join(dir, name.split('/').pop() + '.json'),
-        JSON.stringify({ imports: one.imports }, null, 2) + '\n',
-      );
+      writeMap(join(dir, name.split('/').pop() + '.json'), one.imports, config);
       count += 1;
     }
     written.push({ file: `${dir}/*.json`, entries: count, split: true });

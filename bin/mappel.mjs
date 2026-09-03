@@ -5,14 +5,16 @@
 //   mappel --layer min              one layer, to stdout
 //   mappel --config packages/cdn/mappel.config.mjs --out dist
 //   mappel --layer min --dist-tag alpha --html
+//   mappel --no-js                  maps only, without their script siblings
 //
 // With no arguments it finds mappel.config.mjs by walking up from the current
-// directory, so a package's build script is just `mappel`.
+// directory, so a package's build script is just `mappel`. Every map is written
+// twice: `<name>.json` to read, and `<name>.js` to load from a page.
 
 import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { buildLayer, writeAll, subpathsOf } from '../src/index.mjs';
+import { buildLayer, writeAll, writeMap, subpathsOf } from '../src/index.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -71,9 +73,12 @@ const options = {
 const layerName = flag('layer', null);
 const splitInto = flag('split', null);
 
+// Each map gets a script sibling that installs it. `--no-js` writes only JSON.
+const settings = { ...config, js: has('no-js') ? false : has('js') ? true : config.js };
+
 if (!layerName && !splitInto) {
   const out = resolvePath(flag('out', config.out ? join(base, config.out) : join(base, 'dist')));
-  const written = writeAll(config, { ...options, out });
+  const written = writeAll(settings, { ...options, out });
   for (const { file, entries, split } of written) {
     process.stderr.write(`  ${file} — ${entries} ${split ? 'files' : 'entries'}\n`);
   }
@@ -96,7 +101,7 @@ if (splitInto) {
       options,
     );
     if (Object.keys(one.imports).length === 0) continue;
-    writeFileSync(join(dir, name.split('/').pop() + '.json'), JSON.stringify({ imports: one.imports }, null, 2) + '\n');
+    writeMap(join(dir, name.split('/').pop() + '.json'), one.imports, settings);
     written += 1;
   }
   process.stderr.write(`wrote ${written} maps to ${dir}\n`);
@@ -108,7 +113,8 @@ const json = JSON.stringify({ imports }, null, 2);
 const out = flag('out', null);
 
 if (out) {
-  writeFileSync(out, json + '\n');
+  if (out.endsWith('.json')) writeMap(out, imports, settings);
+  else writeFileSync(out, json + '\n');
   process.stderr.write(`wrote ${out} — ${Object.keys(imports).length} entries\n`);
 } else if (has('html')) {
   const links =

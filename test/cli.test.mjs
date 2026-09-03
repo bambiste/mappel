@@ -53,13 +53,19 @@ test('with no arguments it finds the config above the cwd and writes its out', a
   const root = fixture();
   const deep = join(root, 'packages', 'base');
   await run('node', [cli], { cwd: deep });
-  assert.deepEqual(readdirSync(join(root, 'maps')).sort(), ['base.json', 'full.json']);
+  assert.deepEqual(readdirSync(join(root, 'maps')).sort(), ['base.js', 'base.json', 'full.js', 'full.json']);
 });
 
 test('--out beats the config out', async () => {
   const root = fixture();
   await run('node', [cli, '--out', join(root, 'elsewhere')], { cwd: root });
-  assert.deepEqual(readdirSync(join(root, 'elsewhere')).sort(), ['base.json', 'full.json']);
+  assert.deepEqual(readdirSync(join(root, 'elsewhere')).sort(), ['base.js', 'base.json', 'full.js', 'full.json']);
+});
+
+test('--no-js beats js: true in the config', async () => {
+  const root = fixture('js: true,');
+  await run('node', [cli, '--no-js'], { cwd: root });
+  assert.deepEqual(readdirSync(join(root, 'maps')).sort(), ['base.json', 'full.json']);
 });
 
 test('it says where to look when there is no config', async () => {
