@@ -47,12 +47,20 @@ jobs:
       - run: npm ci
 
       - uses: changesets/action@v1
+        id: changesets
         with:
           version: npm run version
           publish: npm run release
           title: 'chore: version packages'
           commit: 'chore: version packages'
+          createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.pat == 'true' && secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+
+      # `changeset publish` makes the tags on the runner and the job then ends, so
+      # nothing reaches the remote and the Releases page stays empty. Push them.
+      - name: Push the tags publish created
+        if: steps.changesets.outputs.published == 'true'
+        run: git push origin --tags
