@@ -71,5 +71,73 @@ test('writeAll writes a file per layer plus the combined one', async () => {
     layers: { base: { packages: ['@w/base'] }, leaf: { packages: ['@w/leaf'], excludes: ['base'] } },
   };
   writeAll(config, { root, out });
-  assert.deepEqual(readdirSync(out).sort(), ['base.json', 'full.json', 'leaf.json']);
+  assert.deepEqual(
+    readdirSync(out).sort(),
+    ['base.js', 'base.json', 'full.js', 'full.json', 'leaf.js', 'leaf.json'],
+  );
+});
+
+test('js: false writes the maps without their script siblings', async () => {
+  const { mkdtempSync, readdirSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { writeAll } = await import('../src/index.mjs');
+
+  const root = workspace();
+  const out = join(mkdtempSync(join(tmpdir(), 'im-out-')), 'maps');
+  writeAll({ js: false, layers: { base: { packages: ['@w/base'] } } }, { root, out });
+  assert.deepEqual(readdirSync(out).sort(), ['base.json', 'full.json']);
+});
+
+test('the script sibling installs the same map the json holds', async () => {
+  const { mkdtempSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { runInNewContext } = await import('node:vm');
+  const { writeAll } = await import('../src/index.mjs');
+
+  const root = workspace();
+  const out = join(mkdtempSync(join(tmpdir(), 'im-out-')), 'maps');
+  writeAll({ layers: { base: { packages: ['@w/base'] } } }, { root, out });
+
+  const inserted = [];
+  const document = {
+    createElement: () => ({ type: '', textContent: '', setAttribute() {}, addEventListener() {} }),
+    querySelector: () => null,
+    querySelectorAll: () => inserted,
+    head: { appendChild: (el) => inserted.push(el) },
+  };
+  const self = {};
+  runInNewContext(readFileSync(join(out, 'base.js'), 'utf8'), { document, self, console });
+
+  assert.equal(inserted.length, 1);
+  assert.equal(inserted[0].type, 'importmap');
+  assert.deepEqual(JSON.parse(inserted[0].textContent), JSON.parse(readFileSync(join(out, 'base.json'), 'utf8')));
+  // Cross-realm: the vm's objects have their own prototypes, so compare as text.
+  assert.equal(JSON.stringify(self.__mappel), JSON.stringify([JSON.parse(inserted[0].textContent)]));
+});
+
+test('the script sibling warns when a module script already ran', async () => {
+  const { mkdtempSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { runInNewContext } = await import('node:vm');
+  const { writeAll } = await import('../src/index.mjs');
+
+  const root = workspace();
+  const out = join(mkdtempSync(join(tmpdir(), 'im-out-')), 'maps');
+  writeAll({ layers: { base: { packages: ['@w/base'] } } }, { root, out });
+
+  const warnings = [];
+  const document = {
+    createElement: () => ({ type: '', textContent: '', setAttribute() {}, addEventListener() {} }),
+    querySelector: (sel) => (sel.includes('module') ? {} : null),
+    querySelectorAll: () => [{}],
+    head: { appendChild() {} },
+  };
+  runInNewContext(readFileSync(join(out, 'base.js'), 'utf8'), {
+    document,
+    self: {},
+    console: { warn: (m) => warnings.push(m) },
+  });
+
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /after a module script/);
 });
