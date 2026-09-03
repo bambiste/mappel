@@ -1,0 +1,20 @@
+title:  Install a map from a script tag
+what:   every map is now written twice — name.json to read, and name.js which
+        installs that map into the page that loads it as an ordinary script tag.
+        --no-js, or js: false in the config, writes only the json. The tag-push
+        step in the release workflow also lost its condition.
+why:    a browser never loads an import map from a src attribute, so a page had to
+        carry the whole map inline. That rules out any page whose markup is
+        generated, and pins the page to whatever versions were current when
+        someone pasted it.
+        an inline map is registered the moment its element is inserted, so files
+        cannot merge and each installs its own. Several maps in one page need
+        Chromium 133 or newer; the script listens for the element's error event
+        and points at the combined map when the browser turns one down, and warns
+        when a module script already sits above it, where the map arrives too late
+        to resolve anything.
+        the tag push was gated on an output the action leaves empty, since the
+        publish prints through the release CLI's prompt UI, which it does not
+        parse. That is why 0.2.0 reached npm with no tag behind it.
+verify: suite green; one script and a pair of them both checked in a browser
+        against the published packages
