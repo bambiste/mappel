@@ -49,6 +49,13 @@ export function collect(specifiers, options) {
     return `${cdn}/${name}${version}/${clean}`;
   };
 
+  // A stylesheet as a url a browser can fetch, mapped to its loader sibling: a browser cannot
+  // import a stylesheet as a module, the loader adds it as a <link>.
+  const addStylesheet = (key, pkg, dir, file) => {
+    stylesheets.add(urlFor(pkg, dir, file));
+    imports[key] = css === 'loader' ? urlFor(pkg, dir, file + '.js') : 'data:text/javascript,';
+  };
+
   const add = (spec) => {
     if (visited.has(spec)) return;
     visited.add(spec);
@@ -61,10 +68,8 @@ export function collect(specifiers, options) {
     if (!file) return void unresolved.add(spec);
 
     if (spec.endsWith('.css')) {
-      stylesheets.add(urlFor(pkg, dir, file));
-      // A browser cannot import a stylesheet as a module. The loader sibling adds
-      // it as a <link>, so importing a component still brings its styles.
-      imports[spec] = css === 'loader' ? urlFor(pkg, dir, file + '.js') : 'data:text/javascript,';
+      // Importing a component still brings its styles.
+      addStylesheet(spec, pkg, dir, file);
       return;
     }
 
@@ -78,7 +83,12 @@ export function collect(specifiers, options) {
       if (seen.has(current) || !existsSync(current)) continue;
       seen.add(current);
       for (const nested of scanImports(current)) {
-        if (nested.startsWith('.')) {
+        if (nested.startsWith('.') && nested.endsWith('.css')) {
+          // A module's own stylesheet (`import './button.css'`). The browser resolves it to a
+          // url before it reads the map, so the url is the key.
+          const file = './' + relative(dir, normalize(join(dirname(current), nested))).split('\\').join('/');
+          addStylesheet(urlFor(pkg, dir, file), pkg, dir, file);
+        } else if (nested.startsWith('.')) {
           const next = normalize(join(dirname(current), nested));
           stack.push(existsSync(next) ? next : next + '.js');
         } else if (!nested.startsWith('node:')) {

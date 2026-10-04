@@ -1,0 +1,4 @@
+packages: mappel
+bump:     minor
+what:    a stylesheet a module imports relatively (import './button.css') is mapped by its url to its .css.js loader, as a bare .css specifier already was
+what:    before, the browser fetched it as a module and the importing module failed to load
