@@ -141,3 +141,21 @@ test('the script sibling warns when a module script already ran', async () => {
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /after a module script/);
 });
+
+test('a stylesheet a module imports relatively is mapped by its url to the loader', () => {
+  const root = mkdtempSync(join(tmpdir(), 'im-'));
+  const dir = join(root, 'packages', 'button');
+  mkdirSync(join(dir, 'dist'), { recursive: true });
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: '@w/button', version: '1.0.0', exports: { '.': './dist/index.js' } }));
+  writeFileSync(join(dir, 'dist', 'index.js'), "export * from './button.js';");
+  writeFileSync(join(dir, 'dist', 'button.js'), "import './button.css';\nexport const Button = 1;");
+  writeFileSync(join(dir, 'dist', 'button.css'), '.b{}');
+  const config = { layers: { ui: { packages: ['@w/button'] } } };
+  const cdn = buildLayer('ui', config, { root });
+  assert.equal(
+    cdn.imports['https://unpkg.com/@w/button@1.0.0/dist/button.css'],
+    'https://unpkg.com/@w/button@1.0.0/dist/button.css.js',
+  );
+  const local = buildLayer('ui', config, { root, target: 'local' });
+  assert.equal(local.imports['/packages/button/dist/button.css'], '/packages/button/dist/button.css.js');
+});
