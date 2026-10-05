@@ -1,0 +1,6 @@
+subject: Map a stylesheet a module imports relatively
+files:   src/index.mjs, test/layers.test.mjs
+what:    the walk inside a package now maps a relative .css import (import './button.css') by its url to the loader sibling (button.css.js), or to an empty module with css: 'link'; the stylesheet url joins stylesheets
+what:    addStylesheet shared with the bare-specifier case
+why:     a browser resolves a relative specifier to a url before reading the map, so the url is the key; without an entry it fetched the css as a module, failed on the MIME type, and the importing module failed with it
+verify:  test: unpkg and local targets map dist/button.css to dist/button.css.js; 20 tests pass

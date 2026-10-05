@@ -1,0 +1,12 @@
+title:  Map a stylesheet a module imports relatively
+what:   inside a package, import './button.css' now gets a map entry: the stylesheet's url
+        mapped to its .css.js loader sibling (an empty module with css: 'link'); the url
+        also joins the layer's stylesheets
+why:    a browser resolves a relative specifier to a url before it reads the map, so the
+        url is the key. without an entry it fetched the css as a module, the MIME type
+        failed it, and the importing module failed with it
+        fluixi-ui components now ship their css next to their modules (button.js imports
+        ./button.css), so their maps need this
+verify: test for unpkg and local targets; fluixi-ui maps built with it list
+        https://unpkg.com/@fluixi-ui/button@…/dist/button.css -> button.css.js; a page with
+        no bundler loads the module and the loader adds the sheet
