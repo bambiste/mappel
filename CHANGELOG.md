@@ -1,5 +1,11 @@
 # mappel
 
+## 0.4.0
+
+### Minor Changes
+
+- e93094c: A stylesheet imported relatively now maps to its `.css.js` loader instead of being fetched as a module.
+
 ## 0.3.0
 
 ### Minor Changes
