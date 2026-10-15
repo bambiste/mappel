@@ -80,7 +80,7 @@ if (!layerName && !splitInto) {
   const out = resolvePath(flag('out', config.out ? join(base, config.out) : join(base, 'dist')));
   const written = writeAll(settings, { ...options, out });
   for (const { file, entries, split } of written) {
-    process.stderr.write(`  ${file} — ${entries} ${split ? 'files' : 'entries'}\n`);
+    process.stderr.write(`  ${file}, ${entries} ${split ? 'files' : 'entries'}\n`);
   }
   process.exit(0);
 }
@@ -115,7 +115,7 @@ const out = flag('out', null);
 if (out) {
   if (out.endsWith('.json')) writeMap(out, imports, settings);
   else writeFileSync(out, json + '\n');
-  process.stderr.write(`wrote ${out} — ${Object.keys(imports).length} entries\n`);
+  process.stderr.write(`wrote ${out}, ${Object.keys(imports).length} entries\n`);
 } else if (has('html')) {
   const links =
     options.css === 'link' ? stylesheets.map((h) => `<link rel="stylesheet" href="${h}" />`).join('\n') : '';

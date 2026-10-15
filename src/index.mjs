@@ -33,7 +33,7 @@ export function collect(specifiers, options) {
     workspaces,
     // The version in the url. A manifest version pins the map to exactly what was
     // installed when it was written, which is what a published map wants. A dist
-    // tag follows a channel instead, so a page tracks it without being rebuilt —
+    // tag follows a channel instead, so a page tracks it without being rebuilt,
     // at the cost of the page changing when the channel does.
     distTag = null,
   } = options;
@@ -142,7 +142,7 @@ export { subpathsOf, packageDir, resolveExport };
 
 /**
  * The script sibling of a map. A page that cannot write JSON into its own
- * markup — a docs site, a playground, anything served as a template — gets the
+ * markup, a docs site, a playground, anything served as a template, gets the
  * map by loading one classic script instead.
  *
  * An inline map is registered when the element is inserted, so a second file
@@ -153,9 +153,9 @@ export { subpathsOf, packageDir, resolveExport };
 function installer(imports) {
   const map = JSON.stringify(JSON.stringify({ imports }));
   return `(function(){var d=document,w=function(m){if(typeof console!=='undefined')console.warn('[mappel] '+m)};
-if(d.querySelector('script[type="module"]'))w('the import map is being added after a module script and will not be used — load this file first');
+if(d.querySelector('script[type="module"]'))w('the import map is being added after a module script and will not be used, load this file first');
 var s=d.createElement('script');s.type='importmap';s.setAttribute('data-mappel','');s.textContent=${map};
-s.addEventListener('error',function(){w('the browser rejected this import map — a page with several maps needs Chromium 133+, so use the combined map instead')});
+s.addEventListener('error',function(){w('the browser rejected this import map, a page with several maps needs Chromium 133+, so use the combined map instead')});
 (d.head||d.documentElement).appendChild(s);
 (self.__mappel||(self.__mappel=[])).push(JSON.parse(s.textContent))})();
 `;

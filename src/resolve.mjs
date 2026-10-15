@@ -73,7 +73,7 @@ export function resolveExport(dir, sub) {
   const exp = m.exports;
   if (!exp) return sub === '.' ? m.module || m.main || null : null;
   // No key starting with '.' means `exports` is a bare set of conditions that IS
-  // the root entry — `{ import, require, types }` — rather than a subpath map.
+  // the root entry, `{ import, require, types }`, rather than a subpath map.
   if (!Object.keys(exp).some((k) => k.startsWith('.'))) {
     return sub === '.' ? pickTarget(exp) : null;
   }
