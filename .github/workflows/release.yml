@@ -18,6 +18,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: release
     steps:
       # `secrets.X || secrets.Y` falls back only when X is EMPTY, so an expired PAT
       # is still chosen and checkout dies on `could not read Username` before
